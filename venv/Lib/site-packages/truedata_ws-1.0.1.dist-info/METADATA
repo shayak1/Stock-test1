@@ -1,0 +1,335 @@
+Metadata-Version: 2.1
+Name: truedata-ws
+Version: 1.0.1
+Summary: Truedata's Official Python Package
+Home-page: https://github.com/paritoshjchandran/truedata
+Author: Paritosh Chandran
+Author-email: paritosh.j.chandran@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: colorama (>=0.4.3)
+Requires-Dist: pandas (>=1.0.3)
+Requires-Dist: python-dateutil (>=2.8.1)
+Requires-Dist: websocket-client (>=0.57.0)
+
+This is the official python (websocket) repo for TrueData.
+-------
+
+
+**What have we covered so far ?**
+* Websocket APIs
+  *  Live data
+  *  Historical data
+
+**How do you use it ?**
+
+**For beginners**
+
+* Installing from PyPi
+```shell script
+python3.7 -m pip install truedata_ws
+```
+* Running tests to ensure everything is in order 
+```shell script
+python3.7 -m truedata_ws run_all_tests <enter_your_login_id> <enter_your_password>
+```
+
+* Connecting 
+```python
+from truedata_ws.websocket.TD import TD
+td_obj = TD('<enter_your_login_id>', '<enter_your_password>')
+```
+* Connecting using the optional broker_token parameter
+<br>Truedata also partners up with brokers to provide our clients with the optimum trading experience.
+<br>If you are a client that uses this service, please be sure to provide your broker token as well after logging into their service
+```python
+td_obj = TD('<enter_your_login_id>', '<enter_your_password>', broker_token='<enter_broker_token>')
+```
+
+* Starting live data
+
+For Single Symbols
+```python
+req_ids = td_obj.start_live_data(['<enter_symbol>'])
+# Example:
+# req_id = start_live_data(['CRUDEOIL-I'])
+# This returns an single element list that can be used later to reference the data
+```
+For Multiple symbols
+<p>
+
+```python
+req_ids = td_obj.start_live_data(['<symbol_1>', '<symbol_2>', '<symbol_3>', ...])
+# Example:
+# req_ids = td_obj.start_live_data(['CRUDEOIL-I', 'BANKNIFTY-I', 'RELIANCE', 'ITC'])
+# This returns a list that can be used to reference data later
+```
+
+* Accessing touchline data
+```python
+import time
+time.sleep(1)
+for req_id in req_ids:
+    print(td_obj.touchline_data[req_id])
+# You MAY have to wait until for 1 sec for all of the touchline data to populate
+```
+
+* Sample code for testing market data
+```python
+from copy import deepcopy
+live_data_objs = {}
+for req_id in req_ids:    
+    live_data_objs[req_id] = deepcopy(td_obj.live_data[req_id])
+
+while True:
+    for req_id in req_ids:
+        if live_data_objs[req_id] != td_obj.live_data[req_id]:
+            print(td_obj.live_data[req_id])
+            live_data_objs[req_id] = deepcopy(td_obj.live_data[req_id])
+```
+
+* Stopping live data
+```python
+td_obj.stop_live_data(['<symbol_1>', '<symbol_2>', '<symbol_3>', ...])
+```
+
+<br>
+<br>
+You can also provide your own list of req_ids (However, they need to have the same length as the number of symbols)...
+<br>Or, you can provide a single req_id as an integer and we will return a list by incrementing it for every symbol provided...
+
+<br>
+<br>
+<br>
+
+* Getting Historical data
+
+Using no parameters
+```python
+hist_data_1 = td_obj.get_historic_data('BANKNIFTY-I')
+# This returns 1 minute bars from the start of the present day until current time
+```
+Using a given a specific ending time
+```python
+from datetime import datetime
+hist_data_2 = td_obj.get_historic_data('BANKNIFTY-I', end_time=datetime(2020, 5, 5, 12, 30))
+# Any time can be given here
+```
+Using a given duration (For available duration options, please read the limitations section)
+```python
+hist_data_3 = td_obj.get_historic_data('BANKNIFTY-I', duration='3 D')
+```
+Using a specified bar_size (For available bar_size options, please read the limitations section)
+```python
+hist_data_4 = td_obj.get_historic_data('BANKNIFTY-I', bar_size='30 mins')
+```
+Using start time INSTEAD of duration
+```python
+from dateutil.relativedelta import relativedelta
+hist_data_5 = td_obj.get_historic_data('BANKNIFTY-I', start_time=datetime.now()-relativedelta(days=3))
+```
+IMPORTANT NOTE:
+Now that we have covered the basic parameters, you can mix and match the parameters as you please... If a parameter is not specified, the defaults are as follows
+```python
+end_time = datetime.now()
+duration = "1 D"
+bar_size = "1 min"
+```
+
+Example of mix and match
+```python
+hist_data_6 = td_obj.get_historic_data('BANKNIFTY-I', duration='3 D', bar_size='15 mins')
+```
+
+On a side note: You can convert historical data to Pandas DataFrames with a single line
+```python
+import pandas as pd
+df = pd.DataFrame(hist_data_1)
+```
+
+* Disconnect from the service
+```python
+td_obj.disconnect()
+```
+<br>
+<br>
+
+* Limitations and caveats for historical data
+<ol>
+<li>If you provide both duration and start time, duration will be used and start time will be ignored...</li>
+<li>If you provide neither duration nor start time, duration = "1 D" will be used</li>
+<li>
+    ONLY the following BAR_SIZES are available
+    <ul>
+    <li>tick</li>
+    <li>1 min</li>
+    <li>5 mins</li>
+    <li>15 mins</li>
+    <li>30 mins</li>
+    <li>EOD</li>
+    </ul>
+</li>
+<li>
+    Following annotation can be used for DURATION
+    <ul>
+    <li>D = Days</li>
+    <li>W = Weeks</li>
+    <li>M = Months</li>
+    <li>Y = Years</li>
+    </ul>
+</li>
+</ol>
+<br>
+<br>
+<br>
+
+**Sample Code**
+```python
+from truedata_ws.websocket.TD import TD
+from copy import deepcopy
+from time import sleep
+
+import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
+from colorama import Style, Fore
+
+username = '<enter_your_username>'
+password = '<enter_your_password>'
+broker_token = '<enter_your_broker>'
+symbols = ['<symbol_1>', '<symbol_2>', '<symbol_3>', ...]
+
+# ------- In this sample, we use the first of the above given symbols for historical data
+symbol = symbols[0]
+test_time = datetime.today()
+
+td_obj = TD(username, password, broker_token=broker_token)
+
+# ------- Beginning historical data test...
+hist_data_1 = td_obj.get_historic_data(f'{symbol}')
+hist_data_2 = td_obj.get_historic_data(f'{symbol}', duration='3 D')
+hist_data_3 = td_obj.get_historic_data(f'{symbol}', duration='3 D', bar_size='15 mins')
+hist_data_4 = td_obj.get_historic_data(f'{symbol}', bar_size='30 mins')
+hist_data_5 = td_obj.get_historic_data(f'{symbol}', bar_size='30 mins', start_time=test_time - relativedelta(days=3))
+hist_data_6 = td_obj.get_historic_data(f'{symbol}', bar_size='EOD', duration='1 M')
+# Testing tick historical data
+tick_hist_data_1 = td_obj.get_historic_data(f'{symbol}', bar_size='tick')
+tick_hist_data_2 = td_obj.get_historic_data(f'{symbol}', bar_size='tick', duration='3 D')
+tick_hist_data_3 = td_obj.get_historic_data(f'{symbol}', bar_size='tick', start_time=test_time - relativedelta(days=3))
+
+# Printing out the results
+print(f'{Style.BRIGHT}{Fore.BLUE}------------- HIST BAR DATA TEST RESULTS -------------{Style.RESET_ALL}')
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 1...\n"
+      f"\tCommand used -> hist_data_1 = td_app.get_historic_data('{symbol}')\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_1)}{Style.RESET_ALL}")
+for hist_point in hist_data_1[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 2...\n"
+      f"\tCommand used -> hist_data_2 = td_app.get_historic_data('{symbol}', duration='3 D')\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_2)}{Style.RESET_ALL}")
+for hist_point in hist_data_2[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 3...\n"
+      f"\tCommand used -> hist_data_3 = td_app.get_historic_data('{symbol}', duration='3 D', bar_size='15 mins')\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_3)}{Style.RESET_ALL}")
+for hist_point in hist_data_3[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 4...\n"
+      f"\tCommand used -> hist_data_4 = td_app.get_historic_data('{symbol}', bar_size='30 mins')\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_4)}{Style.RESET_ALL}")
+for hist_point in hist_data_4[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 5...\n"
+      f"\tCommand used -> hist_data_5 = td_app.get_historic_data('{symbol}', bar_size='30 mins', start_time=datetime({(test_time - relativedelta(days=3)).strftime('%Y, %m, %d, %H, %M, %S').replace(' 0', ' ')}))\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_5)}{Style.RESET_ALL}")
+for hist_point in hist_data_5[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}HISTDATA 6...\n"
+      f"\tCommand used -> hist_data_6 = td_obj.get_historic_data(f'{symbol}', bar_size='EOD', duration='1 M'))\n"
+      f"\tLENGTH OF RESULT = {len(hist_data_6)}{Style.RESET_ALL}")
+for hist_point in hist_data_6[-20:]:
+    print(hist_point)
+print()
+print()
+print(f'{Style.BRIGHT}{Fore.BLUE}------------- HIST TICK DATA TEST RESULTS -------------{Style.RESET_ALL}')
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}TICKDATA 1...\n"
+      f"\tCommand used -> tick_data_1 = td_app.get_historic_data('{symbol}', bar_size='tick')\n"
+      f"\tLENGTH OF RESULT = {len(tick_hist_data_1)}{Style.RESET_ALL}")
+for hist_point in tick_hist_data_1[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}TICKDATA 2...\n"
+      f"\tCommand used -> tick_data_2 = td_app.get_historic_data('{symbol}', bar_size='tick', duration='3 D')\n"
+      f"\tLENGTH OF RESULT = {len(tick_hist_data_2)}{Style.RESET_ALL}")
+for hist_point in tick_hist_data_2[-20:]:
+    print(hist_point)
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}TICKDATA 3...\n"
+      f"\tCommand used -> tick_data_3 = td_app.get_historic_data('{symbol}', bar_size='tick', start_time=datetime({(test_time - relativedelta(days=3)).strftime('%Y, %m, %d, %H, %M, %S').replace(' 0', ' ')}))\n"
+      f"\tLENGTH OF RESULT = {len(tick_hist_data_3)}{Style.RESET_ALL}")
+for hist_point in tick_hist_data_3[-20:]:
+    print(hist_point)
+
+# Testing conversion to pandas dataframe
+print(f'{Style.BRIGHT}{Fore.BLUE}Converting HISTDATA 1 to a Pandas DataFrame{Style.RESET_ALL}')
+print(f'Command used -> df = pd.DataFrame(hist_data_1)')
+df = pd.DataFrame(hist_data_1)
+print(df)
+print(f'{Style.BRIGHT}{Fore.BLUE}Converting TICKDATA 1 to a Pandas DataFrame{Style.RESET_ALL}')
+print(f'Command used -> df = pd.DataFrame(tick_hist_data_1)')
+df = pd.DataFrame(tick_hist_data_1)
+print(df)
+
+# ------- Beginning live data test...
+req_ids = td_obj.start_live_data(symbols)
+sleep(3)  # This is here just to give the touchline data some time to populate... (Generally takes less than 1 sec)
+print(f"{Style.BRIGHT}{Fore.BLUE}Here's the touchline data...{Style.RESET_ALL}")
+for req_id in req_ids:
+    print(td_obj.touchline_data[req_id])
+print()
+print(f"{Style.BRIGHT}{Fore.BLUE}Here's the LIVE stream... Use Ctrl+C to stop and exit...{Style.RESET_ALL}")
+sleep(2)  # This is here just to give the user time to read the instructions...
+live_data_objs = {}
+for req_id in req_ids:    
+    live_data_objs[req_id] = deepcopy(td_obj.live_data[req_id])
+while True:
+    try:
+        for req_id in req_ids:
+            if live_data_objs[req_id] != td_obj.live_data[req_id]:
+                print(td_obj.live_data[req_id])
+                live_data_objs[req_id] = deepcopy(td_obj.live_data[req_id])
+    except KeyboardInterrupt:
+        td_obj.stop_live_data(symbols)
+        td_obj.disconnect()
+        exit()
+```
+
+# Release Notes
+####v0.3.11
+* Refactored ```query_time``` to ```end_time``` in ```td_obj.get_historic_data()``` function.
+* Refactored ```truedata_id``` to ```symbol_id``` in ```td_obj.touchline_data``` objects.
+* Added ```td_obj.get_touchline()``` as an experimental feature function.
+* Filled missing values in ```td_obj.live_data``` objects upon initialization.
+* Added better debugging information for error reporting.
+* Cleaned up the code base.
+<br>
+<br>
+Yes, we realize the README.md is getting long and, we are actively working on cleaning up the source code and releasing it on github along with a wiki page.<br>
+<br>
+:D
+
+
