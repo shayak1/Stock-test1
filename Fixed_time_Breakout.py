@@ -36,12 +36,12 @@ day_end_time = datetime.time(15, 10, 0)  # the end of the trading session
 print(range_start_time, range_end_time)
 
 # for testing various target ranges, starting value, end value, and skip value
-for j in range(15, 60, 5):
+for j in range(30, 150, 20):
 
-    SL = 15       # change the SL
+    SL = 20       # change the SL
     TGT = j
     early_entry = 10 # early entry
-    double_side_BO = 0 # make it 0 in case you want single side breakout
+    double_side_BO = 1 # make it 0 in case you want single side breakout
 
     # variable assignment
     position = 0

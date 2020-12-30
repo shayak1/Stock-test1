@@ -29,6 +29,7 @@ range_end_time = datetime.time(10,5,0)
 SL = 20
 TGT = 100
 early_entry = 10
+double_side_BO = 1
 
 # variable assignment
 position = 0
@@ -66,7 +67,7 @@ for i in range(1, len(df['close'])):
             # print(df['time'][i], df['high'][i], df['low'][i], ORB['high'], ORB['low'])
             # print(df['date'][i], high, low)
         elif df['time'][i].hour <= 15 or (df['time'][i].hour == 15 and df['time'][i].minute >5):
-            if df['high'][i] > (ORB['high'] - early_entry) and position == 0 and (trade_count == 0 or trade_count == 0):
+            if df['high'][i] > (ORB['high'] - early_entry) and position == 0 and (trade_count == 0 or trade_count == 4*double_side_BO):
                 position = 1
                 trade_count = trade_count + 2
                 buy_val = ORB['high'] - early_entry
@@ -76,7 +77,7 @@ for i in range(1, len(df['close'])):
                 print(df['date'][i], df['time'][i], "Buy@", buy_val, "profit", cum_profit)
 
             #sell entry
-            elif df['low'][i] < (ORB['low'] + early_entry) and position == 0 and (trade_count == 0 or trade_count == 0):
+            elif df['low'][i] < (ORB['low'] + early_entry) and position == 0 and (trade_count == 0 or trade_count == 2*double_side_BO):
                 position = -1
                 trade_count = trade_count + 4
                 sell_val = ORB['low'] + early_entry
