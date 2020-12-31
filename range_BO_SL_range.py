@@ -4,6 +4,7 @@ from nsepy import get_history
 import matplotlib.pyplot as plt
 from pandas.plotting import register_matplotlib_converters
 import datetime
+import math
 
 register_matplotlib_converters()
 import ta as TA
@@ -26,10 +27,12 @@ max_price = df['close'].max()
 range_start_time = datetime.time(9,15,0)
 range_end_time = datetime.time(10,5,0)
 
-SL = 20
-TGT = 100
+SL = 0
+TGT = 0
 early_entry = 10
 double_side_BO = 0
+max_loss = 10000
+RR_ratio = 2
 
 # variable assignment
 position = 0
@@ -45,6 +48,7 @@ stop_loss_val = 0
 buy_count = 0
 sell_count = 0
 trade_count = 0
+range_diff = 0
 
 df['signal'] = 'none'
 print(df.head())
@@ -65,6 +69,7 @@ for i in range(1, len(df['close'])):
 
             ORB['high'] = round(max(ORB['high'], df['high'][i]), 0)
             ORB['low'] = round(min(ORB['low'], df['low'][i]), 0)
+            range_diff = ORB['high'] - ORB['low']
             # print(df['time'][i], df['high'][i], df['low'][i], ORB['high'], ORB['low'])
             # print(df['date'][i], high, low)
         elif df['time'][i].hour <= 15 or (df['time'][i].hour == 15 and df['time'][i].minute >5):
@@ -73,9 +78,13 @@ for i in range(1, len(df['close'])):
                 trade_count = trade_count + 2
                 buy_val = ORB['high'] - early_entry
                 buy_count = buy_count+1
+                TGT = (RR_ratio * range_diff)
+                SL = range_diff
                 take_profit = buy_val + TGT
                 stop_loss_val = buy_val - SL
-                print(df['date'][i], df['time'][i], "Buy@", buy_val, "profit", cum_profit)
+                qty = math.floor(max_loss / range_diff)
+
+                print(df['date'][i], df['time'][i], "Buy@", buy_val, "TGT", take_profit, "SL", SL)
 
             #sell entry
             elif df['low'][i] < (ORB['low'] + early_entry) and position == 0 and (trade_count == 0 or trade_count == 2*double_side_BO):
@@ -83,44 +92,53 @@ for i in range(1, len(df['close'])):
                 trade_count = trade_count + 4
                 sell_val = ORB['low'] + early_entry
                 sell_count = buy_count + 1
+                TGT = (RR_ratio * range_diff)
+                SL = range_diff
                 take_profit = sell_val - TGT
                 stop_loss_val = sell_val + SL
-                print(df['date'][i], df['time'][i], "sell@", sell_val, "profit", cum_profit)
+                qty = math.floor(max_loss / range_diff)
+                print(df['date'][i], df['time'][i], "sell@", sell_val, "TGT", take_profit, "SL", SL)
 
             # buy exit, either profit or loss
             elif df['high'][i] > take_profit and position == 1:
                 position = 0
-                cum_profit = cum_profit + TGT
-                print(df['date'][i], df['time'][i], "Buy_TP@", take_profit, "profit", cum_profit)
+                profit = (TGT * qty)
+                cum_profit = cum_profit + profit
+                print(df['date'][i], df['time'][i], "Buy_TP@", take_profit, "trade_profit", profit, "profit", cum_profit)
 
             elif df['low'][i] < stop_loss_val and position == 1:
                 position = 0
-                cum_profit = cum_profit - SL
-                print(df['date'][i], df['time'][i], "buy_SL@", stop_loss_val, "profit", cum_profit)
+                profit = (SL * qty)
+                cum_profit = cum_profit - profit
+                print(df['date'][i], df['time'][i], "Buy_SL@", stop_loss_val, "trade_profit", -profit, "profit", cum_profit)
 
                 # sell exit, either profit or loss
             elif df['low'][i] < take_profit and position == -1:
 
                 position = 0
-                cum_profit = cum_profit + TGT
-                print(df['date'][i], df['time'][i], "sell_TP@", take_profit, "profit", cum_profit)
+                profit = (TGT * qty)
+                cum_profit = cum_profit + profit
+                print(df['date'][i], df['time'][i], "SL_TP@", take_profit, "trade_profit", profit, "profit", cum_profit)
 
             elif df['high'][i] > stop_loss_val and position == -1:
                 position = 0
-                cum_profit = cum_profit - SL
-                print(df['date'][i], df['time'][i], "sell_SL@", stop_loss_val, "profit", cum_profit)
+                profit = (SL * qty)
+                cum_profit = cum_profit - profit
+                print(df['date'][i], df['time'][i], "Sell_SL@", stop_loss_val, "trade_profit", -profit, "profit", cum_profit)
 
             #day end, no profit/SL, exit at 3.10PM
             elif df['time'][i].hour == 15 and df['time'][i].minute == 5 and position != 0:
                 trade_count = trade_count + 1
                 if position == 1:
                     position = 0
-                    cum_profit = cum_profit + (df['close'][i] - buy_val)
-                    print(df['date'][i], df['time'][i], "Buy_exit@", df['close'][i], "profit", cum_profit)
+                    profit = (df['close'][i] - buy_val) * qty
+                    cum_profit = cum_profit + profit
+                    print(df['date'][i], df['time'][i], "Buy_exit@", df['close'][i], "trade_profit", profit, "profit", cum_profit)
                 elif position == -1:
                     position = 0
-                    cum_profit = cum_profit + (sell_val - df['close'][i])
-                    print(df['date'][i], df['time'][i], "sell_exit@", df['close'][i],"profit", cum_profit)
+                    profit = (sell_val - df['close'][i]) * qty
+                    cum_profit = cum_profit + profit
+                    print(df['date'][i], df['time'][i], "sell_exit@", df['close'][i], "trade_profit", profit, "profit", cum_profit)
 
     else:
         ORB['high'] = 0
@@ -128,6 +146,8 @@ for i in range(1, len(df['close'])):
         position = 0
         trade_count = 0
         qty = 0
+        TGT = 0
+        SL = 0
 
 print("trades=", buy_count+sell_count, "profit=",cum_profit)
 

@@ -31,14 +31,14 @@ df['time'] = pd.to_datetime(df.time, format='%H:%M:%S', errors='coerce').dt.time
 
 print("----breakout timeframe----")
 # breakout parameter
-range_start_time = datetime.time(9, 30, 0)
-range_end_time = datetime.time(10, 5, 0)
+range_start_time = datetime.time(9, 30, 0) # take first order after
+range_end_time = datetime.time(14, 15, 0)  # entry before
 day_end_time = datetime.time(15, 10, 0)  # the end of the trading session
 print(range_start_time, range_end_time)
 
 # for testing various target ranges, starting value, end value, and skip value
 
-profit_multiplier = 2
+profit_multiplier = 1.5
 max_SL = 30
 max_TGT = 70
 
@@ -70,8 +70,11 @@ ORB = {"high": 0, "low": 0}
 for i in range(1, len(df['close'])):
     if df['date'][i] == df['date'][i-1]:   # check for same day
         if range_start_time <= df['time'][i] < day_end_time:    # check for range start
-            # check for inside bar
-            if inside_bar == 0 and df['high'][i] < df['high'][i-1] and df['low'][i] > df['low'][i-1]:
+            # check for inside bar, mother candle > 75% body
+
+            if inside_bar == 0 and df['high'][i] < df['high'][i-1] and df['low'][i] > df['low'][i-1] and (abs(df['open'][i-1]-df['close'][i-1]) > .75*abs(df['high'][i-1]-df['low'][i-1])):
+            #if inside_bar == 0 and df['high'][i] < df['high'][i - 2] and df['low'][i] > df['low'][i - 2] and df['high'][i-1] < df['high'][i - 2] and df['low'][i-1] > df['low'][i - 2] and (
+             #       abs(df['open'][i - 2] - df['close'][i - 2]) > .75 * abs(df['high'][i - 2] - df['low'][i - 2])):
                 inside_bar = 1
                 ORB['high'] = df['high'][i-1]
                 SL_buy = df['low'][i]
@@ -82,7 +85,7 @@ for i in range(1, len(df['close'])):
             elif inside_bar == 1:
                 if position == 0:
                     # buy entry
-                    if df['high'][i] > ORB['high'] > df['low'][i] and (trade_count == 0 or trade_count == 4):
+                    if df['high'][i] > ORB['high'] > df['low'][i] and (trade_count == 0 or trade_count == 4) and df['time'][i] < range_end_time:
                         trade_count += 2
                         position = 1
                         buy_val = ORB['high']
@@ -91,7 +94,7 @@ for i in range(1, len(df['close'])):
                         take_profit = buy_val + profit_multiplier * diff
                         print(df['date'][i], df['time'][i], "Buy@", buy_val, "tgt", take_profit, "SL", stop_loss_val)
                     # sell entry
-                    elif df['low'][i] < ORB['low'] < df['high'][i] and (trade_count == 0 or trade_count == 2):
+                    elif df['low'][i] < ORB['low'] < df['high'][i] and (trade_count == 0 or trade_count == 2) and df['time'][i] < range_end_time:
                         trade_count += 4
                         position = -1
                         sell_val = ORB['low']
