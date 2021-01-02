@@ -32,12 +32,12 @@ day_end_time = datetime.time(15,5,0)
 SL = 20      # min SL irrespective of the range
 TGT = 0
 early_entry = 10    # number of point to enter before the range breakout
-double_side_BO = 1   # 1= both sides, 0=single side
+double_side_BO =1    # 1= both sides, 0=single side
 max_loss = 5000  # for fixed loss
 RR_ratio = 5  # change for higher or lower risk reward ratio
 fixed_SL = 1   # if every trade has fixed SL, else make it 0 to keep range based SL
-starting_capital = 200000
-risk = 0.015  # kept it at 3%, change it as per risk of the system
+starting_capital = 250000
+risk = 0.025  # kept it at 3%, change it as per risk of the system
 
 # variable assignment
 position = 0
