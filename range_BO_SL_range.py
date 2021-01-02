@@ -23,18 +23,21 @@ del df['oi']
 max_price = df['close'].max()
 # print(df.date[df.close == max_price])
 
+
 # breakout parameter
 range_start_time = datetime.time(9,0,0)
 range_end_time = datetime.time(10,5,0)
 day_end_time = datetime.time(15,5,0)
 
-SL = 40       # min SL irrespective of the range
+SL = 20      # min SL irrespective of the range
 TGT = 0
 early_entry = 10    # number of point to enter before the range breakout
-double_side_BO = 0   # 1= both sides, 0=single side
+double_side_BO = 1   # 1= both sides, 0=single side
 max_loss = 5000  # for fixed loss
-RR_ratio = 1   # change for higher or lower risk reward ratio
-fixed_SL = 0     # if every trade has fixed SL, else make it 0 to keep range based SL
+RR_ratio = 5  # change for higher or lower risk reward ratio
+fixed_SL = 1   # if every trade has fixed SL, else make it 0 to keep range based SL
+starting_capital = 200000
+risk = 0.015  # kept it at 3%, change it as per risk of the system
 
 # variable assignment
 position = 0
@@ -42,7 +45,7 @@ buy_val = 0
 sell_val = 0
 last_price = 0
 profit = 0
-cum_profit = 0
+cum_profit = starting_capital
 qty = 0
 
 take_profit = 0
@@ -100,7 +103,8 @@ for i in range(1, len(df['close'])):
 
             take_profit = round(buy_val + TGT)
             stop_loss_val = round(buy_val - range_diff)
-            qty = math.floor(max_loss / range_diff)
+            qty = round((cum_profit*risk)/range_diff)
+
             #print(df['date'][i], ORB['high'], ORB['low'])
             #print(df['date'][i], df['time'][i], "Buy@", buy_val, "TGT", take_profit, "SL", stop_loss_val)
 
@@ -114,7 +118,8 @@ for i in range(1, len(df['close'])):
             TGT = (RR_ratio * range_diff)
             take_profit = round(sell_val - TGT)
             stop_loss_val = round(sell_val + range_diff)
-            qty = math.floor(max_loss / range_diff)
+            qty = round((cum_profit*risk)/range_diff)
+
             # print(df['date'][i], ORB['high'], ORB['low'])
             # print(df['date'][i], df['time'][i], "sell@", sell_val, "TGT", take_profit, "SL", stop_loss_val)
 
@@ -122,17 +127,17 @@ for i in range(1, len(df['close'])):
         # buy exit, either profit or loss
         elif df['high'][i] > take_profit and position == 1:
             position = 0
-            profit = (TGT * qty)
+            profit = round((TGT-3) * qty)
             cum_profit = cum_profit + profit
             win += 1
-            print(df['date'][i], "entry", trade_entry_time,"entry_price", buy_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", take_profit,"Result", profit, "result_type", "BUY-TP")
+            # print(df['date'][i], "Result", profit, "entry", trade_entry_time,"entry_price", qty,buy_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", take_profit, "Result",profit, "result_type", "BUY-TP")
 
         elif df['low'][i] < stop_loss_val and position == 1:
             position = 0
-            profit = (range_diff * qty)
+            profit = round((range_diff +4.5) * qty)
             cum_profit = cum_profit - profit
             loss += 1
-            print(df['date'][i], "entry", trade_entry_time,"entry_price", buy_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", stop_loss_val,"Result", -profit, "result_type", "BUY-SL")
+            # print(df['date'][i], "Result", -profit, "entry", trade_entry_time,"entry_price", qty,buy_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", stop_loss_val, "Result", -profit, "result_type", "BUY-SL")
 
             # sell if double side entry
             if df['low'][i] < (ORB['low'] + early_entry) < df['high'][i] and position == 0 and (
@@ -145,7 +150,8 @@ for i in range(1, len(df['close'])):
 
                 take_profit = round(sell_val - TGT)
                 stop_loss_val = round(sell_val + range_diff)
-                qty = math.floor(max_loss / range_diff)
+                qty = round((cum_profit*risk)/range_diff)
+
                 #print(df['date'][i], ORB['high'], ORB['low'])
                 #print(df['date'][i], df['time'][i], "sell@", sell_val, "TGT", take_profit, "SL", stop_loss_val)
 
@@ -153,18 +159,18 @@ for i in range(1, len(df['close'])):
         elif df['low'][i] < take_profit and position == -1:
 
             position = 0
-            profit = (TGT * qty)
+            profit = round((TGT-3) * qty)
             cum_profit = cum_profit + profit
             win += 1
-            print(df['date'][i], "entry", trade_entry_time,"entry_price", sell_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", take_profit,"Result", profit, "result_type", "SELL-TP")
+            # print(df['date'][i], "Result", profit, "entry", trade_entry_time,"entry_price", qty, sell_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", take_profit, "Result", profit, "result_type", "SELL-TP")
 
 
         elif df['high'][i] > stop_loss_val and position == -1:
             position = 0
-            profit = (range_diff * qty)
+            profit = round((range_diff+4.5) * qty)
             cum_profit = cum_profit - profit
             loss = loss + 1
-            print(df['date'][i], "entry", trade_entry_time,"entry_price", sell_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", stop_loss_val,"Result", -profit, "result_type", "SEll-SL")
+            # print(df['date'][i], "Result", -profit, "entry", trade_entry_time,"entry_price", qty,sell_val,stop_loss_val,take_profit, "exit", df['time'][i],"exit_price", stop_loss_val, "Result", -profit, "result_type", "SEll-SL")
 
             # buy if double side entry
             if df['high'][i] > (ORB['high'] - early_entry) > df['low'][i] and position == 0 and (
@@ -177,7 +183,8 @@ for i in range(1, len(df['close'])):
 
                 take_profit = round(buy_val + TGT)
                 stop_loss_val = round(buy_val - range_diff)
-                qty = math.floor(max_loss / range_diff)
+                qty = round((cum_profit*risk)/range_diff)
+
                 #print(df['date'][i], ORB['high'], ORB['low'])
                 # print(df['date'][i], df['time'][i], "sell@", sell_val, "TGT", take_profit, "SL", stop_loss_val)
 
@@ -187,25 +194,24 @@ for i in range(1, len(df['close'])):
             trade_count = trade_count + 1
             if position == 1:
                 position = 0
-                profit = round((df['close'][i] - buy_val) * qty)
+                profit = round((df['close'][i] - buy_val -3) * qty)
                 cum_profit = cum_profit + profit
-                print(df['date'][i], "entry", trade_entry_time,"entry_price", buy_val,stop_loss_val, take_profit, "exit", df['time'][i],"exit_price", round(df['close'][i]), "Result", profit, "result_type", "BUY-exit")
+                # print(df['date'][i], "Result", profit, "entry", trade_entry_time,"entry_price", qty, buy_val,stop_loss_val, take_profit, "exit", df['time'][i],"exit_price", round(df['close'][i]), "Result", profit, "result_type", "BUY-EX")
                 if profit >= 0:
                     win = win + 1
                 else:
                     loss = loss + 1
             elif position == -1:
                 position = 0
-                profit = round((sell_val - df['close'][i]) * qty)
+                profit = round((sell_val - df['close'][i] +3) * qty)
                 cum_profit = cum_profit + profit
-                print(df['date'][i], "entry", trade_entry_time,"entry_price", sell_val, stop_loss_val, take_profit, "exit", df['time'][i],"exit_price", round(df['close'][i]), "Result", profit, "result_type", "SELL-exit")
+                # print(df['date'][i], "Result", profit, "entry", trade_entry_time,"entry_price", qty, sell_val, stop_loss_val, take_profit, "exit", df['time'][i],"exit_price", round(df['close'][i]),"result_type", "SELL-EX")
                 if profit >= 0:
                     win = win + 1
                 else:
                     loss = loss + 1
 
-
-print("trades=", win+loss, "win",  win, "loss", loss, "win%", win/(win + loss), "profit=",cum_profit)
+print("SL",SL,"RR", SL*RR_ratio, "trades=", win+loss, "win",  win, "loss", loss, "win%", win/(win + loss), "profit=", cum_profit)
 
 
 
